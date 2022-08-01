@@ -1,0 +1,11 @@
+[package]
+name = "simple-csv-tx-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.58"
+csv = "1.1.6"
+rust_decimal = { version = "1.25.0", features = ["serde-with-str"] }
+serde = { version = "1.0.139", features = ["derive"] }
+thiserror = "1.0.31"
