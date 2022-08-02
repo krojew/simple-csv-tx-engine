@@ -22,9 +22,7 @@ pub struct TransactionCsvImporter<R: Read> {
 
 impl TransactionCsvImporter<File> {
     /// Creates a new importer from given input file.
-    pub fn from_path<P: AsRef<Path> + Display>(
-        input_file: P,
-    ) -> Result<TransactionCsvImporter<File>, ImporterError> {
+    pub fn from_path<P: AsRef<Path> + Display>(input_file: P) -> Result<Self, ImporterError> {
         Self::configure_reader_builder(&mut ReaderBuilder::new())
             .from_path(&input_file)
             .map(|csv_reader| Self { csv_reader })
@@ -35,7 +33,7 @@ impl TransactionCsvImporter<File> {
 impl<R: Read> TransactionCsvImporter<R> {
     /// Creates a new importer from given input `Reader`.
     #[cfg(test)]
-    fn from_reader(reader: R) -> TransactionCsvImporter<R> {
+    fn from_reader(reader: R) -> Self {
         let csv_reader =
             Self::configure_reader_builder(&mut ReaderBuilder::new()).from_reader(reader);
 
@@ -58,22 +56,22 @@ impl<R: Read> TransactionCsvImporter<R> {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{ClientId, Transaction, TransactionId};
     use itertools::Itertools;
     use rust_decimal::prelude::*;
 
-    use crate::TransactionCsvImporter;
+    use crate::importer::TransactionCsvImporter;
+    use crate::model::{ClientId, Transaction, TransactionId, TransactionType};
 
     fn create_test_transactions() -> Vec<Transaction> {
         vec![
             Transaction {
-                r#type: "deposit".to_string(),
+                r#type: TransactionType::Deposit,
                 client_id: ClientId::new(1),
                 transaction_id: TransactionId::new(1),
                 amount: Decimal::from_f32(1.).unwrap(),
             },
             Transaction {
-                r#type: "withdrawal".to_string(),
+                r#type: TransactionType::Withdrawal,
                 client_id: ClientId::new(1),
                 transaction_id: TransactionId::new(4),
                 amount: Decimal::from_f32(1.5).unwrap(),

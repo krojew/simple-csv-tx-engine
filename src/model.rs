@@ -12,10 +12,21 @@ pub struct ClientId(u16);
 #[derive(Deserialize, Serialize, Debug, Constructor, Eq, PartialEq)]
 pub struct TransactionId(u32);
 
+/// Possible transaction type.
+#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum TransactionType {
+    Deposit,
+    Withdrawal,
+    Dispute,
+    Resolve,
+    Chargeback,
+}
+
 /// A single transaction to process.
 #[derive(Deserialize, Debug, Eq, PartialEq)]
 pub struct Transaction {
-    pub r#type: String,
+    pub r#type: TransactionType,
 
     #[serde(rename = "client")]
     pub client_id: ClientId,
