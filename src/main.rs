@@ -1,12 +1,8 @@
 use anyhow::{anyhow, Context, Result};
 use std::env;
 
-use crate::engine::process_transactions;
-use crate::importer::TransactionCsvImporter;
-
-mod engine;
-mod importer;
-mod model;
+use simple_csv_tx_engine::engine::process_transactions;
+use simple_csv_tx_engine::importer::TransactionCsvImporter;
 
 fn main() -> Result<()> {
     // For more complex/generic apps, we should use a crate like `clap` for argument handling, but
