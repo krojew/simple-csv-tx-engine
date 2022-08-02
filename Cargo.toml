@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.58"
 csv = "1.1.6"
+derive_more = "0.99.17"
+itertools = "0.10.3"
 rust_decimal = { version = "1.25.0", features = ["serde-with-str"] }
 serde = { version = "1.0.139", features = ["derive"] }
 thiserror = "1.0.31"

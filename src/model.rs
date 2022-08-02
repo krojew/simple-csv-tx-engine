@@ -1,18 +1,19 @@
+use derive_more::Constructor;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// Domain-specific client ID.
 #[repr(transparent)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Constructor, Eq, PartialEq)]
 pub struct ClientId(u16);
 
 /// Domain-specific transaction ID.
 #[repr(transparent)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Constructor, Eq, PartialEq)]
 pub struct TransactionId(u32);
 
 /// A single transaction to process.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Eq, PartialEq)]
 pub struct Transaction {
     pub r#type: String,
 

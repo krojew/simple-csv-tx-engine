@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Context, Result};
-use csv::Reader;
 use std::env;
 
 use crate::engine::process_transactions;
+use crate::importer::TransactionCsvImporter;
 
 mod engine;
+mod importer;
 mod model;
 
 fn main() -> Result<()> {
@@ -14,10 +15,9 @@ fn main() -> Result<()> {
         .nth(1)
         .ok_or_else(|| anyhow!("Missing input file!"))?;
 
-    let mut csv_reader = Reader::from_path(&input_file)
-        .with_context(|| format!("Cannot read input file: {}", input_file))?;
+    let mut importer = TransactionCsvImporter::from_path(&input_file)?;
 
-    let transactions = csv_reader
+    let transactions = importer
         .deserialize()
         .map(|tx| tx.map_err(|error| error.into()));
 
