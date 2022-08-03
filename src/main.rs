@@ -1,24 +1,26 @@
 use anyhow::{anyhow, Context, Result};
+use csv::Writer;
 use std::env;
+use std::io::stdout;
 
-use simple_csv_tx_engine::engine::process_transactions;
 use simple_csv_tx_engine::importer::TransactionCsvImporter;
+use simple_csv_tx_engine::service::TransactionProcessor;
 
 fn main() -> Result<()> {
-    // For more complex/generic apps, we should use a crate like `clap` for argument handling, but
-    // in this case, our app interface is well-defined and consistent + we're prioritizing speed.
+    // for more complex/generic apps, we should use a crate like `clap` for argument handling, but
+    // in this case, our app interface is well-defined and consistent + we're prioritizing speed
     let input_file = env::args()
         .nth(1)
         .ok_or_else(|| anyhow!("Missing input file!"))?;
 
-    let mut importer = TransactionCsvImporter::from_path(&input_file)?;
+    // import from our input file; export to stdout by default
+    let importer = TransactionCsvImporter::from_path(&input_file)?;
 
-    let transactions = importer
-        .deserialize()
-        .map(|tx| tx.map_err(|error| error.into()));
+    // note: we're locking stdout upfront to avoid locking on every write
+    let exporter = Writer::from_writer(stdout().lock());
 
-    let client_states = process_transactions(transactions)
-        .with_context(|| format!("Cannot process input file: {}", input_file))?;
-
-    Ok(())
+    let processor = TransactionProcessor::new(importer, exporter);
+    processor
+        .process_transactions()
+        .with_context(|| format!("Error processing {}!", input_file))
 }

@@ -6,12 +6,10 @@ use std::path::Path;
 
 use crate::model::Transaction;
 
-/// Possible importer errors.
-#[derive(Debug, thiserror::Error)]
-pub enum ImporterError {
-    /// An error originating from parsing CSV data.
-    #[error("CSV error: {0}")]
-    CsvError(#[from] Error),
+/// Abstract transaction importer.
+pub trait TransactionImporter {
+    /// Returns an iterator over deserialized transactions.
+    fn deserialize(&mut self) -> Box<dyn Iterator<Item = anyhow::Result<Transaction>> + '_>;
 }
 
 /// Transaction importer from a CSV reader. Takes care of header/data normalization (whitespace
@@ -20,32 +18,33 @@ pub struct TransactionCsvImporter<R: Read> {
     csv_reader: Reader<R>,
 }
 
+impl<R: Read> TransactionImporter for TransactionCsvImporter<R> {
+    fn deserialize(&mut self) -> Box<dyn Iterator<Item = anyhow::Result<Transaction>> + '_> {
+        Box::new(
+            self.csv_reader
+                .deserialize()
+                .map(|tx| tx.map_err(|error| error.into())),
+        )
+    }
+}
+
 impl TransactionCsvImporter<File> {
     /// Creates a new importer from given input file.
-    pub fn from_path<P: AsRef<Path> + Display>(input_file: P) -> Result<Self, ImporterError> {
+    pub fn from_path<P: AsRef<Path> + Display>(input_file: P) -> Result<Self, Error> {
         Self::configure_reader_builder(&mut ReaderBuilder::new())
             .from_path(&input_file)
             .map(|csv_reader| Self { csv_reader })
-            .map_err(|error| error.into())
     }
 }
 
 impl<R: Read> TransactionCsvImporter<R> {
     /// Creates a new importer from given input `Reader`.
     #[cfg(test)]
-    fn from_reader(reader: R) -> Self {
+    pub(crate) fn from_reader(reader: R) -> Self {
         let csv_reader =
             Self::configure_reader_builder(&mut ReaderBuilder::new()).from_reader(reader);
 
         Self { csv_reader }
-    }
-
-    /// Returns an iterator over deserialized transactions.
-    #[inline]
-    pub fn deserialize(&mut self) -> impl Iterator<Item = Result<Transaction, ImporterError>> + '_ {
-        self.csv_reader
-            .deserialize()
-            .map(|tx| tx.map_err(|error| error.into()))
     }
 
     fn configure_reader_builder(builder: &mut ReaderBuilder) -> &mut ReaderBuilder {
@@ -59,7 +58,7 @@ mod tests {
     use itertools::Itertools;
     use rust_decimal::prelude::*;
 
-    use crate::importer::TransactionCsvImporter;
+    use crate::importer::{TransactionCsvImporter, TransactionImporter};
     use crate::model::{ClientId, Transaction, TransactionId, TransactionType};
 
     fn create_test_transactions() -> Vec<Transaction> {
@@ -68,13 +67,13 @@ mod tests {
                 r#type: TransactionType::Deposit,
                 client_id: ClientId::new(1),
                 transaction_id: TransactionId::new(1),
-                amount: Decimal::from_f32(1.).unwrap(),
+                amount: Some(Decimal::from_f32(1.).unwrap()),
             },
             Transaction {
                 r#type: TransactionType::Withdrawal,
                 client_id: ClientId::new(1),
                 transaction_id: TransactionId::new(4),
-                amount: Decimal::from_f32(1.5).unwrap(),
+                amount: Some(Decimal::from_f32(1.5).unwrap()),
             },
         ]
     }
