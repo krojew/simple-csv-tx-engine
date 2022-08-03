@@ -14,7 +14,7 @@ pub struct ClientId(u16);
 pub struct TransactionId(u32);
 
 /// Possible transaction type.
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum TransactionType {
     Deposit,
@@ -25,7 +25,7 @@ pub enum TransactionType {
 }
 
 /// A single transaction to process.
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Transaction {
     pub r#type: TransactionType,
 
