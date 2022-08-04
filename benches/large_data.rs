@@ -28,45 +28,38 @@ impl ClientStateExporter for NullClientStateExporter {
 }
 
 fn create_transaction_type(rng: &mut impl Rng) -> TransactionType {
-    match rng.gen_range(0..5) {
-        0 => TransactionType::Deposit,
-        1 => TransactionType::Withdrawal,
-        2 => TransactionType::Dispute,
-        3 => TransactionType::Resolve,
-        4 => TransactionType::Chargeback,
-        _ => unreachable!(),
+    if rng.gen_bool(0.5) {
+        TransactionType::Deposit
+    } else {
+        TransactionType::Withdrawal
     }
 }
 
-fn create_transaction_id(index: u64, r#type: TransactionType, rng: &mut impl Rng) -> TransactionId {
+fn create_transaction_id(index: u64, r#type: TransactionType) -> TransactionId {
     match r#type {
         TransactionType::Deposit | TransactionType::Withdrawal => TransactionId::new(index as u32),
-        TransactionType::Dispute | TransactionType::Resolve | TransactionType::Chargeback => {
-            TransactionId::new(rng.gen_range(0..index) as u32)
-        }
+        _ => unreachable!(),
     }
 }
 
 fn create_sample_transactions(size: u64) -> PredefinedTransactionImporter {
     let mut transactions = Vec::with_capacity(size as usize);
 
-    // add one deposit, so disputes etc. can potentially reference it back
-    transactions.push(Transaction {
-        r#type: TransactionType::Deposit,
-        client_id: ClientId::new(1),
-        transaction_id: TransactionId::new(0),
-        amount: Some(Decimal::from(1000)),
-    });
-
     // use hardcoded values for deterministic benches
     let mut rng = SmallRng::seed_from_u64(0xbeef00666);
-    for i in 1..size {
+    for i in 0..size {
         let r#type = create_transaction_type(&mut rng);
+        let amount_delta = if r#type == TransactionType::Deposit {
+            10000.
+        } else {
+            1.
+        };
+
         transactions.push(Transaction {
             r#type,
             client_id: ClientId::new(rng.gen_range(0..50)),
-            transaction_id: create_transaction_id(i, r#type, &mut rng),
-            amount: Decimal::from_f32(rng.gen_range(0f32..1000.)),
+            transaction_id: create_transaction_id(i, r#type),
+            amount: Decimal::from_f32(rng.gen_range(0f32..((i + 1) * 10) as f32) + amount_delta),
         });
     }
 
