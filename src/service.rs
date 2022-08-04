@@ -1,5 +1,6 @@
 use fxhash::FxHashMap;
 use rust_decimal::Decimal;
+use std::io::{stderr, BufWriter, Write};
 use thiserror::Error;
 
 use crate::exporter::ClientStateExporter;
@@ -78,12 +79,27 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
             let result = Self::process_transaction(client, &transaction);
             if let Err(error) = result {
                 // a single invalid transaction should not cause all processing to stop
-                // the requirements are unclear how to report the error, so simply print to stderr
-                eprintln!("{}", error);
+                // the requirements are unclear how to report the error, so simply aggregate the
+                // errors and print a report to stderr
+                self.context.transaction_errors.push(error);
             }
         }
 
+        self.report_transaction_errors();
+
         Ok(())
+    }
+
+    fn report_transaction_errors(&self) {
+        // print any tx errors encountered; use a lock to avoid locking on every write
+        let stderr_lock = stderr().lock();
+        let mut writer = BufWriter::new(stderr_lock);
+
+        for error in &self.context.transaction_errors {
+            // handling errors during error reporting is quite tricky, so for the sake of simplicity
+            // in this example, we simply ignore it
+            let _ = writeln!(&mut writer, "{}", error);
+        }
     }
 
     fn process_transaction(
@@ -230,6 +246,7 @@ impl ClientInfo {
 #[derive(Default)]
 struct ProcessingContext {
     clients: FxHashMap<ClientId, ClientInfo>,
+    transaction_errors: Vec<ProcessingError>,
 }
 
 #[inline]
