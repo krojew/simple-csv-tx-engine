@@ -138,10 +138,11 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                         return Err(ProcessingError::CannotDispute(transaction.transaction_id));
                     }
 
-                    original_transaction.state = TransactionState::Disputed;
                     map_from_transaction_error(transaction.transaction_id, || {
                         client.state.dispute_deposit(original_transaction.amount)
                     })?;
+
+                    original_transaction.state = TransactionState::Disputed;
                 }
             }
             TransactionType::Resolve => {
@@ -155,11 +156,12 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                         ));
                     }
 
-                    // switch back to applied - can be disputed again
-                    original_transaction.state = TransactionState::Applied;
                     map_from_transaction_error(transaction.transaction_id, || {
                         client.state.resolve(original_transaction.amount)
                     })?;
+
+                    // switch back to applied - can be disputed again
+                    original_transaction.state = TransactionState::Applied;
                 }
             }
             TransactionType::Chargeback => {
@@ -173,10 +175,11 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                         ));
                     }
 
-                    original_transaction.state = TransactionState::ChargedBack;
                     map_from_transaction_error(transaction.transaction_id, || {
                         client.state.chargeback(original_transaction.amount)
                     })?;
+
+                    original_transaction.state = TransactionState::ChargedBack;
                 }
             }
         };

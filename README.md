@@ -3,7 +3,8 @@ Simple transaction engine taking sample data from a CSV file, and dumping result
 Input data is being supplied via a `TransactionImporter` to a `TransactionProcessor`, which is then consumed
 and aggregated into final client states, and returned to a `ClientStateExporter`. This simple ETL-like 
 approach shows how to configure a generic *"fire-and-forget"* processing pipeline with little effort. Data
-model correctness, as well as error handling is enforced by language rules and library APIs. 
+model correctness, as well as error handling is enforced by language rules and library APIs. A suite of tests
+guards invariants from breaking (some assumptions have been made regarding undocumented cases).
 
 While this is perfectly fine for processing single batches of data, stateless domain services connected to
 the outside world via classic hexagonal ports and adapters (data input/output, storage, caching, etc.) would
