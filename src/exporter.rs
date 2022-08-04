@@ -6,12 +6,14 @@ use crate::model::ClientState;
 
 /// Abstract client state exporter.
 pub trait ClientStateExporter {
+    /// Serializes the give client state to its intended destination.
     fn serialize(&mut self, client_state: &ClientState) -> Result<()>;
 }
 
 impl<W: Write> ClientStateExporter for Writer<W> {
     fn serialize(&mut self, client_state: &ClientState) -> Result<()> {
-        self.serialize(client_state).with_context(|| {
+        // call our writer version of serialize
+        Writer::serialize(self, client_state).with_context(|| {
             format!(
                 "Error serializing state for client: {}",
                 client_state.client_id()

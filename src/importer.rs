@@ -9,6 +9,7 @@ use crate::model::Transaction;
 /// Abstract transaction importer.
 pub trait TransactionImporter {
     /// Returns an iterator over deserialized transactions.
+    #[must_use]
     fn deserialize(&mut self) -> Box<dyn Iterator<Item = anyhow::Result<Transaction>> + '_>;
 }
 

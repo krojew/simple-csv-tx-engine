@@ -16,7 +16,8 @@ fn main() -> Result<()> {
     // import from our input file; export to stdout by default
     let importer = TransactionCsvImporter::from_path(&input_file)?;
 
-    // note: we're locking stdout upfront to avoid locking on every write
+    // note: we're locking stdout upfront to avoid locking on every write; there's no need to add
+    // buffering, since `csv` already does that
     let exporter = Writer::from_writer(stdout().lock());
 
     let processor = TransactionProcessor::new(importer, exporter);

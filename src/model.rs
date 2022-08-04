@@ -133,7 +133,7 @@ impl ClientState {
         Ok(())
     }
 
-    /// Resolves a transaction with the given amount.
+    /// Resolves a disputed transaction with the given amount.
     pub fn resolve(&mut self, amount: Decimal) -> Result<(), TransactionError> {
         if amount.is_sign_negative() {
             return Err(TransactionError::InvalidAmount(amount));
@@ -150,7 +150,7 @@ impl ClientState {
     }
 
     /// Issues a chargeback on a disputed transaction with a given amount. Lock the account, so no
-    /// further deposits/withdrawals can take place.
+    /// further withdrawals can take place.
     pub fn chargeback(&mut self, amount: Decimal) -> Result<(), TransactionError> {
         if amount.is_sign_negative() {
             return Err(TransactionError::InvalidAmount(amount));

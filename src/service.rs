@@ -32,7 +32,8 @@ pub enum ProcessingError {
 
 /// Transaction processing service. Gathers transactions from a data source, computes resulting
 /// client state, and writes data to given exporter. Intended to be used as a single-shot service
-/// processing batches of transactions.
+/// processing batches of transactions. Fallible data sources and sinks are allowed via the use of
+/// an opaque error type.
 pub struct TransactionProcessor<I: TransactionImporter, E: ClientStateExporter> {
     importer: I,
     exporter: E,
@@ -49,8 +50,7 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
         }
     }
 
-    /// Processes a list of transactions and computes final client states. Fallible data sources are
-    /// allowed via the use of an opaque error type.
+    /// Processes a list of transactions and computes final client states.
     pub fn process_transactions(mut self) -> Result<(), ProcessingError> {
         self.import_and_process_transactions()?;
         self.export_client_states()
@@ -70,6 +70,7 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
         for transaction in self.importer.deserialize() {
             let transaction = transaction.map_err(ProcessingError::ImportError)?;
 
+            // get current client state or create a new one
             let client = self
                 .context
                 .clients
@@ -113,6 +114,7 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                 map_from_transaction_error(transaction.transaction_id, || {
                     client.state.deposit(amount)
                 })?;
+
                 client.transactions.insert(
                     transaction.transaction_id,
                     TransactionInfo::new(amount, transaction.r#type),
@@ -124,6 +126,7 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                 map_from_transaction_error(transaction.transaction_id, || {
                     client.state.withdraw(amount)
                 })?;
+
                 client.transactions.insert(
                     transaction.transaction_id,
                     TransactionInfo::new(amount, transaction.r#type),
@@ -227,7 +230,7 @@ impl TransactionInfo {
 
     #[inline]
     fn can_dispute(&self) -> bool {
-        // see the README for explanation of why we're testing the type
+        // the requirements suggest we handle only deposit disputes - see the README for details
         self.r#type == TransactionType::Deposit && self.state.can_dispute()
     }
 
@@ -237,6 +240,7 @@ impl TransactionInfo {
     }
 }
 
+// client state with all referenced transactions
 struct ClientInfo {
     state: ClientState,
     transactions: FxHashMap<TransactionId, TransactionInfo>,
