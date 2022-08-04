@@ -121,7 +121,7 @@ impl ClientState {
     /// supported due to incoming transaction data description:
     /// *clients available funds should decrease by the amount disputed, their held funds should
     /// increase by the amount disputed, while their total funds should remain the same*.
-    pub fn dispute(&mut self, amount: Decimal) -> Result<(), TransactionError> {
+    pub fn dispute_deposit(&mut self, amount: Decimal) -> Result<(), TransactionError> {
         // since we can dispute deposits or withdrawals,
         if amount.is_sign_negative() {
             return Err(TransactionError::InvalidAmount(amount));
@@ -293,7 +293,7 @@ mod tests {
     fn should_dispute_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
 
         assert_eq!(state.available, Decimal::from(1));
         assert_eq!(state.held, Decimal::from(3));
@@ -305,7 +305,7 @@ mod tests {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
         assert_eq!(
-            state.dispute(Decimal::from(-3)).unwrap_err(),
+            state.dispute_deposit(Decimal::from(-3)).unwrap_err(),
             TransactionError::InvalidAmount(Decimal::from(-3))
         );
 
@@ -318,7 +318,7 @@ mod tests {
     fn should_resolve_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         state.resolve(Decimal::from(3)).unwrap();
 
         assert_eq!(state.available, Decimal::from(4));
@@ -330,7 +330,7 @@ mod tests {
     fn should_not_resolve_negative_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         assert_eq!(
             state.resolve(Decimal::from(-3)).unwrap_err(),
             TransactionError::InvalidAmount(Decimal::from(-3))
@@ -345,7 +345,7 @@ mod tests {
     fn should_not_resolve_missing_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         assert_eq!(
             state.resolve(Decimal::from(4)).unwrap_err(),
             TransactionError::InsufficientFunds
@@ -360,7 +360,7 @@ mod tests {
     fn should_charge_back_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         state.chargeback(Decimal::from(3)).unwrap();
 
         assert_eq!(state.available, Decimal::from(1));
@@ -373,7 +373,7 @@ mod tests {
     fn should_not_charge_back_negative_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         assert_eq!(
             state.chargeback(Decimal::from(-3)).unwrap_err(),
             TransactionError::InvalidAmount(Decimal::from(-3))
@@ -389,7 +389,7 @@ mod tests {
     fn should_not_charge_back_missing_funds() {
         let mut state = ClientState::new(ClientId::new(2));
         state.deposit(Decimal::from(4)).unwrap();
-        state.dispute(Decimal::from(3)).unwrap();
+        state.dispute_deposit(Decimal::from(3)).unwrap();
         assert_eq!(
             state.chargeback(Decimal::from(4)).unwrap_err(),
             TransactionError::InsufficientFunds

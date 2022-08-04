@@ -113,9 +113,10 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                 map_from_transaction_error(transaction.transaction_id, || {
                     client.state.deposit(amount)
                 })?;
-                client
-                    .transactions
-                    .insert(transaction.transaction_id, TransactionInfo::new(amount));
+                client.transactions.insert(
+                    transaction.transaction_id,
+                    TransactionInfo::new(amount, transaction.r#type),
+                );
             }
             TransactionType::Withdrawal => {
                 let amount = extract_amount(transaction)?;
@@ -123,9 +124,10 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
                 map_from_transaction_error(transaction.transaction_id, || {
                     client.state.withdraw(amount)
                 })?;
-                client
-                    .transactions
-                    .insert(transaction.transaction_id, TransactionInfo::new(amount));
+                client.transactions.insert(
+                    transaction.transaction_id,
+                    TransactionInfo::new(amount, transaction.r#type),
+                );
             }
             TransactionType::Dispute => {
                 // we can ignore invalid transactions
@@ -138,7 +140,7 @@ impl<I: TransactionImporter, E: ClientStateExporter> TransactionProcessor<I, E> 
 
                     original_transaction.state = TransactionState::Disputed;
                     map_from_transaction_error(transaction.transaction_id, || {
-                        client.state.dispute(original_transaction.amount)
+                        client.state.dispute_deposit(original_transaction.amount)
                     })?;
                 }
             }
@@ -193,6 +195,7 @@ enum TransactionState {
 impl TransactionState {
     #[inline]
     fn can_dispute(self) -> bool {
+        // we can only dispute applied transactions, not ones already disputed/charged back
         self == TransactionState::Applied
     }
 
@@ -206,20 +209,23 @@ impl TransactionState {
 struct TransactionInfo {
     amount: Decimal,
     state: TransactionState,
+    r#type: TransactionType,
 }
 
 impl TransactionInfo {
     #[inline]
-    fn new(amount: Decimal) -> Self {
+    fn new(amount: Decimal, r#type: TransactionType) -> Self {
         Self {
             amount,
             state: TransactionState::Applied,
+            r#type,
         }
     }
 
     #[inline]
     fn can_dispute(&self) -> bool {
-        self.state.can_dispute()
+        // see the README for explanation of why we're testing the type
+        self.r#type == TransactionType::Deposit && self.state.can_dispute()
     }
 
     #[inline]
@@ -371,6 +377,25 @@ dispute,1,2,
         assert_eq!(exporter.client_states.len(), 1);
         assert_eq!(exporter.client_states[0].client_id(), ClientId::new(1));
         assert_eq!(exporter.client_states[0].total(), Decimal::from(2));
+        assert!(exporter.client_states[0].held().is_zero());
+        assert!(!exporter.client_states[0].locked());
+    }
+
+    #[test]
+    fn should_not_dispute_withdrawal() {
+        let csv = "type,client,tx,amount
+deposit,1,1,2
+withdrawal,1,2,2
+dispute,1,2,
+";
+
+        let (importer, mut exporter) = create_importer_and_exporter(csv.as_bytes());
+        let processor = TransactionProcessor::new(importer, &mut exporter);
+        processor.process_transactions().unwrap();
+
+        assert_eq!(exporter.client_states.len(), 1);
+        assert_eq!(exporter.client_states[0].client_id(), ClientId::new(1));
+        assert!(exporter.client_states[0].total().is_zero());
         assert!(exporter.client_states[0].held().is_zero());
         assert!(!exporter.client_states[0].locked());
     }
