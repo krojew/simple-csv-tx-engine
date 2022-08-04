@@ -10,7 +10,10 @@ the outside world via classic hexagonal ports and adapters (data input/output, s
 be better suited for continuous data processing.
 
 Processing large volumes of data should use stream processing for high scalability and efficiency (e.g.
-**Kafka Streams**, although KS DSL is not available for Rust yet). 
+**Kafka Streams**, although KS DSL is not available for Rust yet). Since the application is IO bound and
+processing itself is quite trivial, using a multithreaded solution might not yield positive results, at
+least for small datasets or low number of distinct clients. A more advanced version might switch between
+sequential and parallel solution based on a runtime parameter or a cost heuristic.
 
 Transactions can have the following outcomes for a given client:
 
